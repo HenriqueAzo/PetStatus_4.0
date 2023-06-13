@@ -44,9 +44,9 @@ void abrirporta(){
 void reconhecimento_eeprom(){//função para verificar se a senha inserida é correta    
   //int para armazenamento de leitura da memória e comparação das senhas
   long int senhateste = 0;
-  for(int i = user ;i<=(user+6) ;i++){ //Busca os 6 caracteres associados ao usuario
+  for(int i = user ;i<(user+6) ;i++){ //Busca os 6 caracteres associados ao usuario
     senhateste +=EEPROM.read(i);
-    if(i-user<=5){
+    if(i-user<5){
       senhateste = senhateste*10;
     }
   }
@@ -71,8 +71,8 @@ void reconhecimento_eeprom(){//função para verificar se a senha inserida é co
   abrirporta();
   }else{
   Serial.println("Senha não reconhecida.");
-  state = 0;
   }
+  state = 0;
 }
  
 void telaInicial(){
@@ -125,6 +125,7 @@ void loop() {
     senha = 0;
     user = 0;
     state++;
+    Serial.println("state=1, esperando input de usuario");
     break;
 
     //aguarda usuário ter 2 dígitos e confere se usuário inserido foi de 0 a 30, do contrário, retorna à tela inicial
@@ -137,6 +138,7 @@ void loop() {
         Serial.print("usuario registrado: ");
         Serial.println(user);
         state++;
+        Serial.println("state=2, reconhecendo o usuario");
       }
     }
 
@@ -147,6 +149,7 @@ void loop() {
     telaSenha();
     input = "";
     state++;
+    Serial.println("state=3, tela de senha enviada ao LCD, esperando senha de 6 digitos");
     break;
     
     //espera o input de uma senha de 6 dígitos e armazena o inserido no int senha. no final, confere a senha e abre ou não a porta.
