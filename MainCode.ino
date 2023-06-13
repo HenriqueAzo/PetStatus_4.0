@@ -34,19 +34,45 @@ int state = 0;
 //função para abrir a porta
 void abrirporta(){
   digitalWrite(10, HIGH);
-  delay(500);
+  delay(200);
   digitalWrite(10, LOW);
   Serial.println();
   Serial.println("a porta foi aberta!");
   Serial.println();
 }
 
+void registro_eeprom(){
+  int pos=0;//valor para a posição da string de 0 a 5 na senha
+
+  for(int i = user*6 ;i<((user*6)+6) ;i++){ //Busca os 6 números associados ao usuario na memória EEPROM do arduino. para usuario 0, busca dos bytes 0 a 5 e os concatena formando um número, por exemplo. para usuário 1, seriam os bytes de 6 a 11, e assim por diante.
+    int digit = input.charAt(pos) - '0';
+    pos++;
+    EEPROM.write(i, digit);
+    Serial.println();
+    Serial.print("escrito o dígito ");
+    Serial.print(digit);
+    Serial.print(" no endereço ");
+    Serial.print(i);
+    Serial.println(".");
+  }
+  Serial.println();
+  Serial.print("novo usuário inserido: ");
+  Serial.print(user);
+  Serial.println();
+  Serial.print("nova senha inserida: ");
+  Serial.print(input);
+  Serial.println();
+  Serial.println("Senha registrada: ");
+  Serial.print(input);
+  Serial.println();  
+}
+
 void reconhecimento_eeprom(){//função para verificar se a senha inserida é correta    
   //int para armazenamento de leitura da memória e comparação das senhas
   long int senhateste = 0;
-  for(int i = user ;i<(user+6) ;i++){ //Busca os 6 caracteres associados ao usuario
+  for(int i = user*6 ;i<((user*6)+6) ;i++){ //Busca os 6 números associados ao usuario na memória EEPROM do arduino. para usuario 0, busca dos bytes 0 a 5 e os concatena formando um número, por exemplo. para usuário 1, seriam os bytes de 6 a 11, e assim por diante.
     senhateste +=EEPROM.read(i);
-    if(i-user<5){
+    if(i-(user*6)<5){
       senhateste = senhateste*10;
     }
   }
@@ -61,18 +87,42 @@ void reconhecimento_eeprom(){//função para verificar se a senha inserida é co
   Serial.print(senhateste);
   Serial.println();
 
-  if(senha == senhateste){ // Se a senha for igual à senha associado ao usuario
-  lcd.clear();
-  lcd.setCursor(4, 0);
-  lcd.print("Bem Vindo,");
-  lcd.setCursor(5, 1);
-  lcd.print("Usuario ");
-  lcd.print(user);
-  abrirporta();
+  if(senha == senhateste && user == 0){//caso de usuario admin, para registrar novas senhas
+    lcd.clear();
+    lcd.backlight();
+    lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
+    lcd.print("Novo Usuario:");
+    lcd.setCursor(0, 1);
+
+    Serial.println("iniciando modo de administrador");
+    state=4;
+    Serial.println("aguardando input de novo usuario");
+
+    input = "";
+    inputint = 0;
+    senha = 0;
+    user = 0;
+
+  }else if(senha == senhateste){ // Se a senha for igual à senha associado ao usuario
+    lcd.clear();
+    lcd.setCursor(4, 0);
+    lcd.print("Bem Vindo,");
+    lcd.setCursor(5, 1);
+    lcd.print("Usuario ");
+    lcd.print(user);
+    abrirporta();
+    state = 0;
   }else{
-  Serial.println("Senha não reconhecida.");
+    Serial.println("Senha não reconhecida.");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("    Senha Nao");
+    lcd.setCursor(2, 1);
+    lcd.print("Reconhecida");
+    delay(500);
+    state = 0;
   }
-  state = 0;
+  
 }
  
 void telaInicial(){
@@ -97,11 +147,11 @@ void telaUser(){
 
 void telaSenha(){
   lcd.clear();
-   lcd.backlight();
-   lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
-   lcd.print("   PET Status");
-   lcd.setCursor(0, 1);
-   lcd.print("Senha: ");
+  lcd.backlight();
+  lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
+  lcd.print("   PET Status");
+  lcd.setCursor(0, 1);
+  lcd.print("Senha: ");
 }
 
 void setup() {
@@ -119,54 +169,101 @@ void loop() {
     
     //apresenta a tela inicial
     case 0:
-    Serial.println("tela inicial foi enviada");
-    telaUser();
-    input = "";
-    senha = 0;
-    user = 0;
-    state++;
-    Serial.println("state=1, esperando input de usuario");
+      Serial.println("tela inicial foi enviada");
+      telaUser();
+      input = "";
+      inputint = 0;
+      senha = 0;
+      user = 0;
+      state++;
+      Serial.println("state=1, esperando input de usuario");
     break;
 
     //aguarda usuário ter 2 dígitos e confere se usuário inserido foi de 0 a 30, do contrário, retorna à tela inicial
     case 1:
-    if(input.length()==2){
-      inputint = input.toInt();
-      if (inputint>=0&& inputint<31){
-        user = inputint;
-        inputint = 0;
-        Serial.print("usuario registrado: ");
-        Serial.println(user);
-        state++;
-        Serial.println("state=2, reconhecendo o usuario");
+      if(input.length()==2){
+        inputint = input.toInt();
+        if (inputint>=0&& inputint<31){
+          user = inputint;
+          inputint = 0;
+          Serial.print("usuario registrado: ");
+          Serial.println(user);
+          state++;
+          Serial.println("state=2, registrando usuario inserido e limpando input");
+        }else{
+          state=0;
+        }
       }
-    }
-
     break;
 
     //apresenta tela de senha e limpa o input para receber novos dados
     case 2:
-    telaSenha();
-    input = "";
-    state++;
-    Serial.println("state=3, tela de senha enviada ao LCD, esperando senha de 6 digitos");
+      telaSenha();
+      input = "";
+      state++;
+      Serial.println("state=3, tela de senha enviada ao LCD, esperando senha de 6 digitos");
     break;
     
     //espera o input de uma senha de 6 dígitos e armazena o inserido no int senha. no final, confere a senha e abre ou não a porta.
     case 3:
-    if (input.length()==6){
-      inputint = input.toInt();
-      Serial.print("input: ");
-      Serial.println(input);
-      Serial.print("inputint: ");
-      Serial.println(inputint);
-      senha = inputint;
-      inputint = 0;
-      Serial.print("senha registrada no case 3: ");
-      Serial.println(senha);
+      if (input.length()==6){
+        inputint = input.toInt();
+        Serial.print("input: ");
+        Serial.println(input);
+        Serial.print("inputint: ");
+        Serial.println(inputint);
+        senha = inputint;
+        inputint = 0;
+        Serial.print("senha registrada no case 3: ");
+        Serial.println(senha);
 
-      reconhecimento_eeprom();
-    }
+        reconhecimento_eeprom();
+      }
+    break;
+
+    case 4:
+      if(input.length()==2){
+        inputint = input.toInt();
+        if (inputint>=0&& inputint<31){
+          user = inputint;
+          inputint = 0;
+          Serial.print("novo usuario inserido: ");
+          Serial.println(user);
+          state=5;
+          Serial.println("state=5, usuario registrado e limpando o input");
+        }
+      }
+    break;
+
+    case 5:
+        lcd.clear();
+        lcd.backlight();
+        lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
+        lcd.print("Nova Senha:");
+        lcd.setCursor(0, 1);
+      input = "";
+      state=6;
+      Serial.println("state=6, tela de senha enviada ao LCD, esperando nova senha de 6 digitos");
+    break;
+
+    case 6:
+      if (input.length()==6){
+        inputint = input.toInt();
+        Serial.print("input: ");
+        Serial.println(input);
+        Serial.print("inputint: ");
+        Serial.println(inputint);
+        senha = inputint;
+        inputint = 0;
+        Serial.print("senha registrada no case 6: ");
+        Serial.println(senha);
+
+        registro_eeprom();
+        state=0;
+        Serial.println("retornando ao stage 0...");
+        Serial.println();
+        Serial.println();
+      }      
     break;
 
     default:
@@ -183,9 +280,17 @@ void loop() {
     if (input.indexOf("#") != -1){//limpa a senha caso seja inserido um #
         input = "";
         asteriscos = "";
-      }else{
-        asteriscos.concat('*');
-      }
+    }else{
+      asteriscos.concat('*');
+    }
+
+    if (input.indexOf("*") != -1){//limpa a senha caso seja inserido um #
+        input = "";
+        asteriscos = "";
+        state=0;
+    }else{
+      asteriscos.concat('*');
+    }
     
     Serial.print("inserido: ");
     Serial.println(input);
