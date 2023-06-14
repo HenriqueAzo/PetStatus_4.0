@@ -88,11 +88,7 @@ void reconhecimento_eeprom(){//função para verificar se a senha inserida é co
   Serial.println();
 
   if(senha == senhateste && user == 0){//caso de usuario admin, para registrar novas senhas
-    lcd.clear();
-    lcd.backlight();
-    lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
-    lcd.print("Novo Usuario:");
-    lcd.setCursor(0, 1);
+    telaNovoUser();
 
     Serial.println("iniciando modo de administrador");
     state=4;
@@ -102,14 +98,22 @@ void reconhecimento_eeprom(){//função para verificar se a senha inserida é co
     inputint = 0;
     senha = 0;
     user = 0;
-
+  }else if(senha == senhateste && user == 1){
+    lcd.clear();
+    lcd.setCursor(4, 0);
+    lcd.print("Bem Vindo,");
+    lcd.setCursor(2, 1);
+    lcd.print("Tutor");
+    abrirporta();
+    state = 0;
   }else if(senha == senhateste){ // Se a senha for igual à senha associado ao usuario
     lcd.clear();
     lcd.setCursor(4, 0);
     lcd.print("Bem Vindo,");
-    lcd.setCursor(5, 1);
-    lcd.print("Usuario ");
+    lcd.setCursor(2, 1);
+    lcd.print("Petiano(");
     lcd.print(user);
+    lcd.print(")");
     abrirporta();
     state = 0;
   }else{
@@ -140,7 +144,7 @@ void telaUser(){
   lcd.clear();
    lcd.backlight();
    lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
-   lcd.print("   PET Status");
+   lcd.print("PET Status");
    lcd.setCursor(0, 1);
    lcd.print("Usuario: ");
 }
@@ -152,6 +156,22 @@ void telaSenha(){
   lcd.print("   PET Status");
   lcd.setCursor(0, 1);
   lcd.print("Senha: ");
+}
+
+void telaNovoUser(){
+  lcd.clear();
+  lcd.backlight();
+  lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
+  lcd.print("Novo Usuario:");
+  lcd.setCursor(0, 1);
+}
+
+void telaNovaSenha(){
+  lcd.clear();
+  lcd.backlight();
+  lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
+  lcd.print("Nova senha:");
+  lcd.setCursor(0, 1);
 }
 
 void setup() {
@@ -236,11 +256,7 @@ void loop() {
     break;
 
     case 5:
-        lcd.clear();
-        lcd.backlight();
-        lcd.setCursor(0, 0); // Set the cursor on the third column and first row.
-        lcd.print("Nova Senha:");
-        lcd.setCursor(0, 1);
+      telaNovaSenha();
       input = "";
       state=6;
       Serial.println("state=6, tela de senha enviada ao LCD, esperando nova senha de 6 digitos");
@@ -274,12 +290,34 @@ void loop() {
   char key = keypad.getKey();
   if (key != NO_KEY){//segura o código enquanto o programa não recebe input    
     char lastkey = key;
-    lcd.print(lastkey);
+    lcd.print("#");
     input.concat(key);//adiciona a tecla pressionada no final da String que é a senha
     
     if (input.indexOf("#") != -1){//limpa a senha caso seja inserido um #
         input = "";
         asteriscos = "";
+        switch (state){
+          case 1:
+            telaUser();
+          break;
+
+          case 3:
+            telaSenha();
+          break;
+
+          case 4:
+            telaNovoUser();
+          break;
+
+          case 6:
+            telaNovaSenha();
+          break;
+        
+        default:
+        state=0;
+        break;
+        }
+
     }else{
       asteriscos.concat('*');
     }
