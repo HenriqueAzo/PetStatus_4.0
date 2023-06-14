@@ -2,8 +2,7 @@
 
 //verificar antes de gravar
 int senha[6] = {0, 5, 0, 9, 1, 9}; // Cria um array de 5 inteiros com valores diferentes
-int user = 2;
-int iteration = 6*2;
+int user = 0;
 void setup() {
   Serial.begin(9600);
   
